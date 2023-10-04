@@ -1,0 +1,111 @@
+
+import Chart from 'react-apexcharts'
+import {useNavigate} from 'react-router-dom'
+import {useState,useEffect} from "react"
+import finnhub from "../apis/Finnhub"
+export const LiveStock=()=>{  
+  
+  const symbol="GOOGL"
+  const [data,setData]=useState([])
+  
+  useEffect(()=>{
+  let x=new Date().getTime(),y=0;
+    
+  const groupDataByInterval=(data,y,x)=>{
+    let n=data.length;
+    data.forEach(value=>{
+      y=(value.p>y)?value.p?y;
+    })
+
+    if(data[data.length-1].t-x>=1000){
+      
+      return {success:true,x:data[data.length-1],y};
+    }else{
+      return {success:false,y,x};
+    }
+  }
+    const socket = new WebSocket('wss://ws.finnhub.io?token=cire2i1r01qrvprj0apgcire2i1r01qrvprj0aq0');
+
+// Connection opened -> Subscribe
+socket.addEventListener('open', function (event) {
+    socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'GOOGL'}))
+    // socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'BINANCE:BTCUSDT'}))
+    // socket.send(JSON.stringify({'type':'subscribe', 'symbol': 'IC MARKETS:1'}))
+});
+
+// Listen for messages
+socket.addEventListener('message', function (event) {
+    // const newData={
+    //   x:JSON.parse(event.data).data[0].t,
+    //   y:JSON.parse(event.data).data[0].p}
+    const res=groupDataByInterval(JSON.parse(event.data).data,y,x)
+    if(res.success){
+      setData(data=>{
+    const updated=[...data,{x,y}]
+    if(updated.length>50){
+      updated.shift()
+    }
+    return updated
+  })
+      x=0;
+      y=res.y;
+    }else{
+      y=res.y;
+    }
+  console.log(JSON.parse(event.data).data)
+  
+});
+
+// Unsubscribe
+ var unsubscribe = function(symbol) {
+    socket.send(JSON.stringify({'type':'unsubscribe','symbol': symbol}))
+}
+     
+
+  },[])
+  const options={
+    title:{
+      text:symbol,
+      align:"center",
+      style:{
+        fontSize:"24px"
+      }
+    },
+    chart:{
+      id:"realtime",
+      animations:{
+        enabled:false
+        // enabled: true,
+        //     easing: 'linear',
+        //     dynamicAnimation: {
+        //       speed: 1300
+        //     }
+      }
+    },
+    xaxis:{
+      type:"datetime",
+      labels:{
+        datetimeUTC:false
+      },
+    },
+    tooltip:{
+      x:{
+        format:"MMM dd HH:MM"
+      }
+    }
+  }
+ const series=[{
+      name:symbol,
+      data,
+    }]
+  return (
+    <div className="mt-3 p-4 shadow-sm bg-white  ">
+      hello
+    <Chart options={options} series={series} type="area" width="100%" height={window.innerWidth>=1000?'400px':'auto'}/>
+      <div>
+      
+
+      </div>
+    </div>
+  )
+}  
